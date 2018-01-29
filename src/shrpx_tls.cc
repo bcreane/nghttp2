@@ -1266,6 +1266,7 @@ int verify_numeric_hostname(X509 *cert, const StringRef &hostname,
     saddr = &addr->su.in6.sin6_addr;
     break;
   default:
+    LOG(WARN) << "verify_numeric_hostname() - bad ss_family=" << addr->su.storage.ss_family;
     return -1;
   }
 
@@ -1289,11 +1290,13 @@ int verify_numeric_hostname(X509 *cert, const StringRef &hostname,
 
       ip_found = true;
       if (addr->len == ip_addrlen && memcmp(saddr, ip_addr, ip_addrlen) == 0) {
+        LOG(WARN) << "verify_numeric_hostname() - #2 - memcmp match, len=" << ip_addrlen;
         return 0;
       }
     }
 
     if (ip_found) {
+      LOG(WARN) << "verify_numeric_hostname() - #3 - ip_found";
       return -1;
     }
   }
@@ -1318,7 +1321,10 @@ int verify_numeric_hostname(X509 *cert, const StringRef &hostname,
 namespace {
 int verify_hostname(X509 *cert, const StringRef &hostname,
                     const Address *addr) {
+  LOG(WARN) << "verify_hostname(), hostname=" << hostname.c_str();
+
   if (util::numeric_host(hostname.c_str())) {
+    LOG(WARN) << "verify_hostname() - numeric!";
     return verify_numeric_hostname(cert, hostname, addr);
   }
 
@@ -1402,7 +1408,7 @@ int check_cert(SSL *ssl, const Address *addr, const StringRef &host) {
   auto cert_deleter = defer(X509_free, cert);
 
   if (verify_hostname(cert, host, addr) != 0) {
-    LOG(ERROR) << "Certificate verification failed: hostname does not match";
+    LOG(ERROR) << "Certificate verification failed: hostname does not match, host=" << host;
     return -1;
   }
   return 0;
