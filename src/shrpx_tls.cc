@@ -1172,6 +1172,9 @@ ClientHandler *accept_connection(Worker *worker, int fd, sockaddr *addr,
 }
 
 bool tls_hostname_match(const StringRef &pattern, const StringRef &hostname) {
+  LOG(WARN) << "(BCREANE) - pattern: " << pattern;
+  LOG(WARN) << "(BCREANE) - hostname: " << hostname;
+
   auto ptWildcard = std::find(std::begin(pattern), std::end(pattern), '*');
   if (ptWildcard == std::end(pattern)) {
     return util::strieq(pattern, hostname);
