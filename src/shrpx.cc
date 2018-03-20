@@ -2789,9 +2789,11 @@ int process_options(Config *config,
     assert(include_set.empty());
   }
 
+  LOG(WARN) << "About to reopen log files";
   // Reopen log files using configurations in file
   reopen_log_files(config->logging);
 
+  LOG(WARN) << "About to parse command-line args";
   {
     std::set<StringRef> include_set;
 
@@ -2808,6 +2810,7 @@ int process_options(Config *config,
 
   auto &loggingconf = config->logging;
 
+  LOG(WARN) << "About to open log facility";
   if (loggingconf.access.syslog || loggingconf.error.syslog) {
     openlog("nghttpx", LOG_NDELAY | LOG_NOWAIT | LOG_PID,
             loggingconf.syslog_facility);
@@ -2818,8 +2821,10 @@ int process_options(Config *config,
     return -1;
   }
 
+  LOG(WARN) << "About to redirect stderr to errorlog";
   redirect_stderr_to_errorlog(loggingconf);
 
+  LOG(WARN) << "About to change ownder of log files";
   if (config->uid != 0) {
     if (log_config()->accesslog_fd != -1 &&
         fchown(log_config()->accesslog_fd, config->uid, config->gid) == -1) {
@@ -2840,6 +2845,7 @@ int process_options(Config *config,
     config->num_worker = 1;
   }
 
+  LOG(WARN) << "About to change upstream req header file";
   auto &http2conf = config->http2;
   {
     auto &dumpconf = http2conf.upstream.debug.dump;
@@ -2916,6 +2922,7 @@ int process_options(Config *config,
   auto &listenerconf = config->conn.listener;
   auto &upstreamconf = config->conn.upstream;
 
+  LOG(WARN) << "About to listen on AF_INET, port 3000";
   if (listenerconf.addrs.empty()) {
     UpstreamAddr addr{};
     addr.host = StringRef::from_lit("*");
@@ -2931,6 +2938,7 @@ int process_options(Config *config,
     upstreamconf.worker_connections = std::numeric_limits<size_t>::max();
   }
 
+  LOG(WARN) << "About to check if upstream tls enabled";
   if (tls::upstream_tls_enabled(config->conn) &&
       (tlsconf.private_key_file.empty() || tlsconf.cert_file.empty())) {
     LOG(FATAL) << "TLS private key and certificate files are required.  "
@@ -2939,6 +2947,7 @@ int process_options(Config *config,
     return -1;
   }
 
+  LOG(WARN) << "About to check if ocsp response file is enabled";
   if (tls::upstream_tls_enabled(config->conn) && !tlsconf.ocsp.disabled) {
     struct stat buf;
     if (stat(tlsconf.ocsp.fetch_ocsp_response_file.c_str(), &buf) != 0) {
@@ -2949,11 +2958,13 @@ int process_options(Config *config,
     }
   }
 
+  LOG(WARN) << "About to configure downstream group";
   if (configure_downstream_group(config, config->http2_proxy, false, tlsconf) !=
       0) {
     return -1;
   }
 
+  LOG(WARN) << "About to configure downstream http proxy";
   auto &proxy = config->downstream_http_proxy;
   if (!proxy.host.empty()) {
     auto hostport = util::make_hostport(StringRef{proxy.host}, proxy.port);
@@ -2966,6 +2977,7 @@ int process_options(Config *config,
                 << util::to_numeric_addr(&proxy.addr);
   }
 
+  LOG(WARN) << "About to configure memcached";
   {
     auto &memcachedconf = tlsconf.session_cache.memcached;
     if (!memcachedconf.host.empty()) {
@@ -2987,6 +2999,7 @@ int process_options(Config *config,
     }
   }
 
+  LOG(WARN) << "About to configure TLS ticket key";
   {
     auto &memcachedconf = tlsconf.ticket.memcached;
     if (!memcachedconf.host.empty()) {
@@ -3007,6 +3020,7 @@ int process_options(Config *config,
     }
   }
 
+  LOG(WARN) << "About to configure rlimit-nofile";
   if (config->rlimit_nofile) {
     struct rlimit lim = {static_cast<rlim_t>(config->rlimit_nofile),
                          static_cast<rlim_t>(config->rlimit_nofile)};
@@ -3019,6 +3033,7 @@ int process_options(Config *config,
 
   auto &fwdconf = config->http.forwarded;
 
+  LOG(WARN) << "About to configure forwarded node obfuscated";
   if (fwdconf.by_node_type == FORWARDED_NODE_OBFUSCATED &&
       fwdconf.by_obfuscated.empty()) {
     // 2 for '_' and terminal NULL
@@ -3031,6 +3046,7 @@ int process_options(Config *config,
     fwdconf.by_obfuscated = StringRef{iov.base, p};
   }
 
+  LOG(WARN) << "About to configure upstream debug frame";
   if (config->http2.upstream.debug.frame_debug) {
     // To make it sync to logging
     set_output(stderr);
@@ -3040,7 +3056,10 @@ int process_options(Config *config,
     reset_timer();
   }
 
+  LOG(WARN) << "About to initiate http2 upstream callbacks";
   config->http2.upstream.callbacks = create_http2_upstream_callbacks();
+
+  LOG(WARN) << "About to initiate http2 downstream callbacks";
   config->http2.downstream.callbacks = create_http2_downstream_callbacks();
 
   return 0;
