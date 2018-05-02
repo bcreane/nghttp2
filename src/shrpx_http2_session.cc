@@ -1853,6 +1853,7 @@ bool Http2Session::can_push_request() const {
 }
 
 void Http2Session::start_checking_connection() {
+  return;
   if (state_ != CONNECTED ||
       connection_check_state_ != CONNECTION_CHECK_REQUIRED) {
     return;
